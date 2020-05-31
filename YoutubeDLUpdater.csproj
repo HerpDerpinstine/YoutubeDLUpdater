@@ -51,7 +51,7 @@
 	  <Private>false</Private>
     </Reference>
     <Reference Include="MelonLoader.ModHandler">
-      <HintPath>..\..\..\..\Steam\steamapps\common\VRChat\MelonLoader\MelonLoader.ModHandler.dll</HintPath>
+      <HintPath>Libs\MelonLoader.ModHandler.dll</HintPath>
 	  <Private>false</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -68,7 +68,7 @@
 	  <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>D:\Steam\steamapps\common\VRChat\MelonLoader\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>Libs\UnityEngine.CoreModule.dll</HintPath>
 	  <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
