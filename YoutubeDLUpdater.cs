@@ -1,12 +1,15 @@
 ﻿using System;
 using System.IO;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using MelonLoader;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using Harmony;
 
 namespace YoutubeDLUpdater
 {
@@ -15,46 +18,35 @@ namespace YoutubeDLUpdater
         public const string Name = "YoutubeDLUpdater";
         public const string Author = "Herp Derpinstine";
         public const string Company = "Lava Gang";
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.2";
         public const string DownloadLink = "https://github.com/HerpDerpinstine/YoutubeDLUpdater";
     }
 
     public class YoutubeDLUpdater : MelonMod
     {
-        private static bool HasRun = false;
-        private static string Version = null;
+        private static HarmonyInstance harmonyInstance = null;
 
         public override void OnApplicationStart()
         {
+            harmonyInstance = HarmonyInstance.Create("YoutubeDLUpdater");
+            harmonyInstance.Patch(typeof(YoutubeDLControl).GetMethod("Method_Public_IEnumerator_7", BindingFlags.Public | BindingFlags.Instance), new HarmonyMethod(typeof(YoutubeDLUpdater).GetMethod("YoutubeDLControl_Method_Public_IEnumerator_7", BindingFlags.NonPublic | BindingFlags.Static)));
+        }
+
+        private static bool YoutubeDLControl_Method_Public_IEnumerator_7(YoutubeDLControl __instance)
+        {
             string filePath = Application.streamingAssetsPath + "/youtube-dl.exe";
-            bool should_download = false;
-
-            if (!File.Exists(filePath))
-                should_download = true;
-            else
+            string exeVersion = null;
+            if (File.Exists(filePath))
+                exeVersion = FileVersionInfo.GetVersionInfo(filePath).ProductVersion;
+            UnityWebRequest githubWWW = UnityWebRequest.Get("http://api.github.com/repos/ytdl-org/youtube-dl/releases/latest");
+            githubWWW.SendWebRequest();
+            while (!githubWWW.isDone) ;
+            if (githubWWW.responseCode == 200)
             {
-                string exeVersion = FileVersionInfo.GetVersionInfo(filePath).ProductVersion;
-                UnityWebRequest githubWWW = UnityWebRequest.Get("http://api.github.com/repos/ytdl-org/youtube-dl/releases/latest");
-                githubWWW.SendWebRequest();
-                while (!githubWWW.isDone) ;
-                if (githubWWW.responseCode == 200)
+                JObject data = (JObject)JsonConvert.DeserializeObject(System.Text.Encoding.UTF8.GetString(githubWWW.downloadHandler.data));
+                string githubVersion = data["tag_name"].Value<string>();
+                if (string.IsNullOrEmpty(exeVersion) || (!string.IsNullOrEmpty(githubVersion) && !exeVersion.Equals(githubVersion)))
                 {
-                    JObject data = (JObject)JsonConvert.DeserializeObject(System.Text.Encoding.UTF8.GetString(githubWWW.downloadHandler.data));
-                    string githubVersion = data["tag_name"].Value<string>();
-                    if (!exeVersion.Equals(githubVersion))
-                        should_download = true;
-                }
-            }
-            if (should_download)
-            {
-                UnityWebRequest githubWWW = UnityWebRequest.Get("http://api.github.com/repos/ytdl-org/youtube-dl/releases/latest");
-                githubWWW.SendWebRequest();
-                while (!githubWWW.isDone) ;
-                if (githubWWW.responseCode == 200)
-                {
-                    JObject data = (JObject)JsonConvert.DeserializeObject(System.Text.Encoding.UTF8.GetString(githubWWW.downloadHandler.data));
-                    string githubVersion = data["tag_name"].Value<string>();
-
                     UnityWebRequest fileDownload = UnityWebRequest.Get("http://github.com/ytdl-org/youtube-dl/releases/download/" + githubVersion + "/youtube-dl.exe");
                     fileDownload.SendWebRequest();
                     while (!fileDownload.isDone) ;
@@ -62,20 +54,8 @@ namespace YoutubeDLUpdater
                         File.WriteAllBytes(filePath, fileDownload.downloadHandler.data);
                 }
             }
-            Version = GetChecksum(filePath);
-        }
-
-        public override void OnUpdate()
-        {
-            if (!HasRun)
-            {
-                YoutubeDLControl control = YoutubeDLControl.field_Internal_Static_YoutubeDLControl_0;
-                if (control != null)
-                {
-                    control.YoutubeDLVersion = Version;
-                    HasRun = true;
-                }
-            }
+            __instance.YoutubeDLVersion = GetChecksum(filePath);
+            return true;
         }
 
         public static string GetChecksum(string file)
