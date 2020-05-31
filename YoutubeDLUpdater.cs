@@ -15,7 +15,7 @@ namespace YoutubeDLUpdater
         public const string Name = "YoutubeDLUpdater";
         public const string Author = "Herp Derpinstine";
         public const string Company = "Lava Gang";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
         public const string DownloadLink = "https://github.com/HerpDerpinstine/YoutubeDLUpdater";
     }
 
@@ -27,16 +27,34 @@ namespace YoutubeDLUpdater
         public override void OnApplicationStart()
         {
             string filePath = Application.streamingAssetsPath + "/youtube-dl.exe";
-            string exeVersion = FileVersionInfo.GetVersionInfo(filePath).ProductVersion;
-            UnityWebRequest githubWWW = UnityWebRequest.Get("http://api.github.com/repos/ytdl-org/youtube-dl/releases/latest");
-            githubWWW.SendWebRequest();
-            while (!githubWWW.isDone) ;
-            if (githubWWW.responseCode == 200)
+            bool should_download = false;
+
+            if (!File.Exists(filePath))
+                should_download = true;
+            else
             {
-                JObject data = (JObject)JsonConvert.DeserializeObject(System.Text.Encoding.UTF8.GetString(githubWWW.downloadHandler.data));
-                string githubVersion = data["tag_name"].Value<string>();
-                if (!exeVersion.Equals(githubVersion))
+                string exeVersion = FileVersionInfo.GetVersionInfo(filePath).ProductVersion;
+                UnityWebRequest githubWWW = UnityWebRequest.Get("http://api.github.com/repos/ytdl-org/youtube-dl/releases/latest");
+                githubWWW.SendWebRequest();
+                while (!githubWWW.isDone) ;
+                if (githubWWW.responseCode == 200)
                 {
+                    JObject data = (JObject)JsonConvert.DeserializeObject(System.Text.Encoding.UTF8.GetString(githubWWW.downloadHandler.data));
+                    string githubVersion = data["tag_name"].Value<string>();
+                    if (!exeVersion.Equals(githubVersion))
+                        should_download = true;
+                }
+            }
+            if (should_download)
+            {
+                UnityWebRequest githubWWW = UnityWebRequest.Get("http://api.github.com/repos/ytdl-org/youtube-dl/releases/latest");
+                githubWWW.SendWebRequest();
+                while (!githubWWW.isDone) ;
+                if (githubWWW.responseCode == 200)
+                {
+                    JObject data = (JObject)JsonConvert.DeserializeObject(System.Text.Encoding.UTF8.GetString(githubWWW.downloadHandler.data));
+                    string githubVersion = data["tag_name"].Value<string>();
+
                     UnityWebRequest fileDownload = UnityWebRequest.Get("http://github.com/ytdl-org/youtube-dl/releases/download/" + githubVersion + "/youtube-dl.exe");
                     fileDownload.SendWebRequest();
                     while (!fileDownload.isDone) ;
